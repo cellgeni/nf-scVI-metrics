@@ -125,7 +125,7 @@ process plot_umap {
         path 'umap.pdf'
   script:
   """
-        python /lustre/scratch127/cellgen/cellgeni/yc6/Hyperparameter_scVI/nf-scHPT/bin/plot_umap.py '$input_adata' '$input_file' '$adata'
+        python ${projectDir}/bin/plot_umap.py '$input_adata' '$input_file' '$adata'
   """
 }
 
