@@ -11,17 +11,18 @@ ENV PATH="${VENV_PATH}/bin:$PATH"
 
 # Update the package list and install necessary packages
 RUN apt-get update -y \
-     && apt-get install -y\
-        curl \
-	wget \
-     && apt-get clean
+    && apt-get install -y\
+    curl \
+    wget \
+    && apt-get clean
 
 RUN python -m venv "${VENV_PATH}" && \
     . "${VENV_PATH}/bin/activate" && \
     pip install -U pip setuptools wheel && \
-    pip install bbknn \
-	scib-metrics \
-	scvi-tools
+    pip install jupyterlab papermill \
+    bbknn \
+    scib-metrics==0.5.3 \
+    scvi-tools==1.3.0
 
 
 # Copy Dockerfile to the container
