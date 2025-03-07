@@ -19,7 +19,7 @@ RUN apt-get update -y \
 RUN python -m venv "${VENV_PATH}" && \
     . "${VENV_PATH}/bin/activate" && \
     pip install -U pip setuptools wheel && \
-    pip install jupyterlab \
+    pip install jupyterlab papermill \
     bbknn \
     scib-metrics==0.5.3 \
     scvi-tools==1.3.0
