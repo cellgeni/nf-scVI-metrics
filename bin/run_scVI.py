@@ -25,10 +25,12 @@ scvi_model = scvi.model.SCVI(adata,
 
 scvi_model.train(check_val_every_n_epoch = 5, **args['train_input'])
 
-out_adata = ad.AnnData(obs = adata.obs, var = adata.var)
-out_adata.obsm['scVI'] = scvi_model.get_latent_representation()
+import numpy as np
+np.save(f"param_{sys.argv[3]}", scvi_model.get_latent_representation())
 
-out_adata.write_h5ad(f"adata_{sys.argv[3]}")
+# out_adata = ad.AnnData(obs = adata.obs, var = adata.var)
+# out_adata.obsm['scVI'] = scvi_model.get_latent_representation()
+# out_adata.write_h5ad(f"adata_{sys.argv[3]}")
 
 with open(f"history_{sys.argv[3]}", "wb") as f:
     pickle.dump(scvi_model.history, f)

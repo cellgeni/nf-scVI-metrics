@@ -1,5 +1,5 @@
 # path to anndata object
-anndata_input = "/lustre/scratch127/cellgen/cellgeni/yc6/GBM/GBM_scVI_metrics.h5ad"
+anndata_input = "/lustre/scratch127/cellgen/cellgeni/GBM_scVI_metrics.h5ad"
 
 # parameters for scvi.model.SCVI
 # please put all parameters as a list
