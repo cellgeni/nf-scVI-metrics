@@ -34,18 +34,6 @@ process parse_inputs {
   """
 }
 
-
-process get_adata {
-  input:
-    path adata_path
-  output:
-    path 'raw_adata'
-  script:
-  """
-	  cp \$(cat ${'adata_path'}) 'raw_adata'
-  """
-}
-
 process prune_adata {
   memory {raw_adata.size() < 2.GB ? 6.GB * task.attempt : raw_adata.size() * 3 * task.attempt}
   input:
@@ -147,13 +135,11 @@ process combine_embedding {
   input:
     path raw_adata
     path embeddings
-    val plot_umap
-    path umaps
   output:
 	  path 'adata_embedding.h5ad'
   script:
   """
-    python ${projectDir}/bin/comb_embedding.py '$raw_adata' '$embeddings' '$plot_umap' '$umaps'
+    python ${projectDir}/bin/comb_embedding.py '$raw_adata' '$embeddings'
   """
 }
 
@@ -164,8 +150,7 @@ workflow {
   }
   else {
 	  parse_inputs(params.input_file)
-	  get_adata(parse_inputs.out.adata_path)
-	  prune_adata(get_adata.out, params.input_file)
+	  prune_adata(parse_inputs.out.adata_path.text, params.input_file)
 	  run_scVI(prune_adata.out.input_adata, params.input_file, parse_inputs.out.model_input.flatten())
 	  plot_history(run_scVI.out.history.collect())
 	  run_scib(prune_adata.out.input_adata, params.input_file, run_scVI.out.embedding.concat(prune_adata.out.pca))
@@ -174,7 +159,7 @@ workflow {
 	    run_umap(run_scVI.out.embedding.concat(prune_adata.out.pca))
       plot_umap(prune_adata.out.input_adata, params.input_file, run_umap.out.collect())
 	  }
-    combine_embedding(get_adata.out, run_scVI.out.embedding.collect(), params.umap, run_umap.out.collect())
+    combine_embedding(parse_inputs.out.adata_path.text, run_scVI.out.embedding.collect())
   }
 }
 
