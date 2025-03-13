@@ -4,10 +4,10 @@ anndata_input = "/lustre/scratch127/cellgen/cellgeni/GBM_scVI_metrics.h5ad"
 # parameters for scvi.model.SCVI
 # please put all parameters as a list
 model_input = {
-    'n_hidden': [64, 128], 
+    # 'n_hidden': [64, 128], 
     'n_latent': [5, 10, 20], 
     'n_layers': [1, 2], 
-    'dropout_rate': [0.1, 0.2]
+    # 'dropout_rate': [0.1, 0.2]
 }
 
 # parameters for SCVI.setup_anndata

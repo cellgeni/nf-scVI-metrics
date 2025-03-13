@@ -30,7 +30,8 @@ process parse_inputs {
     path 'input_params.csv', emit: input_params
   script:
   """
-	  parse_input.py '$input_file'
+	  parse_input.py \
+      --input_file '$input_file'
   """
 }
 
@@ -40,18 +41,20 @@ process prune_adata {
     path raw_adata
     val input_file
   output:
-    path 'input_adata', emit: input_adata
+    path 'pruned_adata', emit: adata
     path 'PCA_params_unintegrated.npy', emit: pca
   script:
   """
-	  prune_adata.py '$raw_adata' '$input_file'
+	  prune_adata.py \
+      --raw_adata '$raw_adata' \
+      --input_file '$input_file'
   """
 }
 
 process run_scVI {
-  memory {input_adata.size() < 2.GB ? 8.GB * task.attempt : input_adata.size() * 4 * task.attempt}
+  memory {adata.size() < 2.GB ? 8.GB * task.attempt : adata.size() * 4 * task.attempt}
   input:
-    path input_adata
+    path adata
     val input_file
     path model_input
   output:
@@ -59,7 +62,10 @@ process run_scVI {
     path "history_${model_input}", emit: history
   script:
   """
-	  run_scVI.py '$input_adata' '$input_file' '$model_input'
+	  run_scVI.py \
+      --adata '$adata' \
+      --input_file '$input_file' \
+      --params_file '$model_input'
   """
 }
 
@@ -71,21 +77,25 @@ process plot_history {
 	  path 'reconstruction_loss.pdf'
   script:
   """
-	  plot_history.py '$history'
+	  plot_history.py \
+      --history_files '$history'
   """
 }
 
 process run_scib {
-  memory {input_adata.size() < 2.GB ? 16.GB * task.attempt : input_adata.size() * 8 * task.attempt}
+  memory {adata.size() < 2.GB ? 16.GB * task.attempt : adata.size() * 8 * task.attempt}
   input:
-    path input_adata
+    path adata
     val input_file
-    path embedding
+    path scVI_embedding
   output:
 	  path 'param_*'
   script:
   """
-    run_scib.py '$input_adata' '$input_file' '$embedding'
+    run_scib.py \
+      --adata '$adata' \
+      --input_file '$input_file' \
+      --scVI_embedding '$scVI_embedding'
   """
 }
 
@@ -98,34 +108,39 @@ process plot_scib {
     path 'scib_results_scaled.svg'
   script:
   """
-    plot_scib.py '$results'
+    plot_scib.py \
+      --result_files '$results'
   """
 }
 
 process run_umap {
-  memory {input_adata.size() < 2.GB ? 16.GB * task.attempt : input_adata.size() * 8 * task.attempt}
+  memory {adata.size() < 2.GB ? 16.GB * task.attempt : adata.size() * 8 * task.attempt}
   input:
-    path input_adata
+    path adata
     path scVI_embedding
   output:
     path 'umap_*' 
   script:
   """
-	  run_umap.py '$scVI_embedding'
+	  run_umap.py \
+      --scVI_embedding '$scVI_embedding'
   """
 }
 
 process plot_umap {
   publishDir 'results', mode: 'copy'
   input:
-	  path input_adata
+	  path adata
     val input_file
     path umaps
   output:
     path 'umap.pdf'
   script:
   """
-    plot_umap.py '$input_adata' '$input_file' '$umaps'
+    plot_umap.py \
+      --adata '$adata' \
+      --input_file '$input_file' \
+      --umaps '$umaps'
   """
 }
 
@@ -139,7 +154,9 @@ process combine_embedding {
 	  path 'adata_embedding.h5ad'
   script:
   """
-    comb_embedding.py '$raw_adata' '$embeddings'
+    comb_embedding.py \
+      --raw_adata '$raw_adata' \
+      --embeddings '$embeddings'
   """
 }
 
@@ -151,19 +168,17 @@ workflow {
   else {
 	  parse_inputs(params.input_file)
 	  prune_adata(parse_inputs.out.adata_path.text, params.input_file)
-	  run_scVI(prune_adata.out.input_adata, params.input_file, parse_inputs.out.model_input.flatten())
+	  run_scVI(prune_adata.out.adata, params.input_file, parse_inputs.out.model_input.flatten())
 	  plot_history(run_scVI.out.history.collect())
-	  run_scib(prune_adata.out.input_adata, params.input_file, run_scVI.out.embedding.concat(prune_adata.out.pca))
+	  run_scib(prune_adata.out.adata, params.input_file, run_scVI.out.embedding.concat(prune_adata.out.pca))
 	  plot_scib(run_scib.out.collect())
     embeddings = run_scVI.out.embedding
 	  if (params.umap) {
-	    run_umap(prune_adata.out.input_adata, run_scVI.out.embedding.concat(prune_adata.out.pca))
-      plot_umap(prune_adata.out.input_adata, params.input_file, run_umap.out.collect())
-      embeddings.concat(run_umap.out)
-      combine_embedding(parse_inputs.out.adata_path.text, embeddings.collect())
-	  } else {
-      combine_embedding(parse_inputs.out.adata_path.text, embeddings.collect())
-    }
+	    run_umap(prune_adata.out.adata, run_scVI.out.embedding.concat(prune_adata.out.pca))
+      plot_umap(prune_adata.out.adata, params.input_file, run_umap.out.collect())
+      embeddings = embeddings.concat(run_umap.out)
+	  }
+    combine_embedding(parse_inputs.out.adata_path.text, embeddings.collect())
   }
 }
 
