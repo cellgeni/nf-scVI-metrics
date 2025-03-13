@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import sys
 from runpy import run_path
 import anndata as ad
@@ -36,4 +38,4 @@ del adata.varm
 
 adata.write_h5ad("input_adata")
 
-np.save(f"PCA_prune_data_unintegrated", adata.obsm['X_pca'])
+np.save(f"PCA_params_unintegrated", adata.obsm['X_pca'])

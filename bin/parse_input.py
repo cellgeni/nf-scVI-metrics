@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import sys
 import json
 import pandas as pd
@@ -24,7 +26,7 @@ turning_grid = create_turning_grid(**args['model_input'])
 
 out_dict = dict()
 for i,j in enumerate(turning_grid):
-    with open(f"model_input_{i}", "w") as f:
+    with open(f"params_{i}", "w") as f:
             json.dump(j, f)
 
     out_dict[f"params_{i}"] = j

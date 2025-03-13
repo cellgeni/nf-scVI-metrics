@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import sys
 import anndata as ad
 import scanpy as sc
@@ -26,7 +28,7 @@ scvi_model = scvi.model.SCVI(adata,
 scvi_model.train(check_val_every_n_epoch = 5, **args['train_input'])
 
 import numpy as np
-np.save(f"param_{sys.argv[3]}", scvi_model.get_latent_representation())
+np.save(f"scvi_{sys.argv[3]}", scvi_model.get_latent_representation())
 
 # out_adata = ad.AnnData(obs = adata.obs, var = adata.var)
 # out_adata.obsm['scVI'] = scvi_model.get_latent_representation()

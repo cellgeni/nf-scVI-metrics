@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import sys
 import h5py
 import anndata as ad
@@ -16,7 +18,7 @@ if 'layer' in args['param_input']:
 embedding = np.load(temp)
 # with h5py.File(temp) as file:
 #     embedding = ad._io.specs.read_elem(file['obsm/scVI'])
-temp_obsm = 'param_' + temp.split('_')[3]
+temp_obsm = 'param_' + temp.split('_')[2]
 adata.obsm[temp_obsm] = embedding
 
 scib_input = args['scib_input']

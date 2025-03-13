@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import sys
 import h5py
 import anndata as ad
