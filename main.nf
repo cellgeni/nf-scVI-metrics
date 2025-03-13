@@ -6,6 +6,13 @@ def helpMessage() {
     ===================
     scVI Hyperparameter Tuning pipeline
     ===================
+    This pipeline performs a grid search to optimize hyperparameters for scVI
+    Usage: nextflow run main.nf [OPTIONS]
+      Required options:
+      --input_file: Path to the input file
+      Optional options:
+      --help: Display this help message
+      --umap: Perform UMAP on the scVI embeddings
     """.stripIndent()
 }
 
@@ -23,14 +30,14 @@ def errorMessage() {
 process parse_inputs {
   publishDir 'results', mode: 'copy', pattern: 'input_params.csv'
   input:
-  	val input_file
+    val input_file
   output:
-	  path 'adata_path', emit: adata_path
+    path 'adata_path', emit: adata_path
     path 'params_*', emit: model_input
     path 'input_params.csv', emit: input_params
   script:
   """
-	  parse_input.py \
+    parse_input.py \
       --input_file '$input_file'
   """
 }
@@ -45,9 +52,10 @@ process prune_adata {
     path 'PCA_params_unintegrated.npy', emit: pca
   script:
   """
-	  prune_adata.py \
+    prune_adata.py \
       --raw_adata '$raw_adata' \
-      --input_file '$input_file'
+      --input_file '$input_file' \
+      --n_pca_unintegrated $params.n_pca_unintegrated
   """
 }
 
@@ -62,22 +70,23 @@ process run_scVI {
     path "history_${model_input}", emit: history
   script:
   """
-	  run_scVI.py \
+    run_scVI.py \
       --adata '$adata' \
       --input_file '$input_file' \
-      --params_file '$model_input'
+      --params_file '$model_input' \
+      --check_val_every_n_epoch $params.check_val_every_n_epoch
   """
 }
 
 process plot_history {
   publishDir 'results', mode: 'copy'
   input:
-	  path history
+    path history
   output:
-	  path 'reconstruction_loss.pdf'
+    path 'reconstruction_loss.pdf'
   script:
   """
-	  plot_history.py \
+    plot_history.py \
       --history_files '$history'
   """
 }
@@ -89,13 +98,15 @@ process run_scib {
     val input_file
     path scVI_embedding
   output:
-	  path 'param_*'
+    path 'param_*'
   script:
   """
     run_scib.py \
       --adata '$adata' \
       --input_file '$input_file' \
-      --scVI_embedding '$scVI_embedding'
+      --scVI_embedding '$scVI_embedding' \
+      --scib_max_obs $params.scib_max_obs \
+      --n_cpu $task.cpus
   """
 }
 
@@ -122,15 +133,16 @@ process run_umap {
     path 'umap_*' 
   script:
   """
-	  run_umap.py \
-      --scVI_embedding '$scVI_embedding'
+    run_umap.py \
+      --scVI_embedding '$scVI_embedding' \
+      --seed $params.umap_seed
   """
 }
 
 process plot_umap {
   publishDir 'results', mode: 'copy'
   input:
-	  path adata
+    path adata
     val input_file
     path umaps
   output:
@@ -151,7 +163,7 @@ process combine_embedding {
     path raw_adata
     path embeddings
   output:
-	  path 'adata_embedding.h5ad'
+    path 'adata_embedding.h5ad'
   script:
   """
     comb_embedding.py \
@@ -166,18 +178,18 @@ workflow {
     exit 0
   }
   else {
-	  parse_inputs(params.input_file)
-	  prune_adata(parse_inputs.out.adata_path.text, params.input_file)
-	  run_scVI(prune_adata.out.adata, params.input_file, parse_inputs.out.model_input.flatten())
-	  plot_history(run_scVI.out.history.collect())
-	  run_scib(prune_adata.out.adata, params.input_file, run_scVI.out.embedding.concat(prune_adata.out.pca))
-	  plot_scib(run_scib.out.collect())
+    parse_inputs(params.input_file)
+    prune_adata(parse_inputs.out.adata_path.text, params.input_file)
+    run_scVI(prune_adata.out.adata, params.input_file, parse_inputs.out.model_input.flatten())
+    plot_history(run_scVI.out.history.collect())
+    run_scib(prune_adata.out.adata, params.input_file, run_scVI.out.embedding.concat(prune_adata.out.pca))
+    plot_scib(run_scib.out.collect())
     embeddings = run_scVI.out.embedding
-	  if (params.umap) {
-	    run_umap(prune_adata.out.adata, run_scVI.out.embedding.concat(prune_adata.out.pca))
+    if (params.umap) {
+      run_umap(prune_adata.out.adata, run_scVI.out.embedding.concat(prune_adata.out.pca))
       plot_umap(prune_adata.out.adata, params.input_file, run_umap.out.collect())
       embeddings = embeddings.concat(run_umap.out)
-	  }
+    }
     combine_embedding(parse_inputs.out.adata_path.text, embeddings.collect())
   }
 }

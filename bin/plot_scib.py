@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import sys
 import argparse
 import pandas as pd
 from scib_metrics.benchmark import Benchmarker, BioConservation, BatchCorrection

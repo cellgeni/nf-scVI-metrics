@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import sys
 import argparse
 from runpy import run_path
 import anndata as ad
@@ -11,6 +10,7 @@ import h5py
 parser = argparse.ArgumentParser(description='Prune AnnData object.')
 parser.add_argument('--raw_adata', type=str, help='Path to the input h5 file.')
 parser.add_argument('--input_file', type=str, help='Path to the parameters file.')
+parser.add_argument('--n_pca_unintegrated', type=int, help='Number of PCA components to use for unintegrated data.')
 args = parser.parse_args()
 
 params = run_path(args.input_file)
@@ -35,7 +35,7 @@ else:
 if 'pre_integrated_embedding_obsm_key' not in params['scib_input']:
     sc.pp.normalize_total(adata, layer='nxf_norm')
     sc.pp.log1p(adata, layer='nxf_norm')
-    sc.pp.pca(adata, n_comps=30, layer='nxf_norm')
+    sc.pp.pca(adata, n_comps=args.n_pca_unintegrated, layer='nxf_norm')
 
 del adata.layers['nxf_norm']
 del adata.uns

@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 
-import sys
 import argparse
-import h5py
 import anndata as ad
 import scanpy as sc
 import numpy as np

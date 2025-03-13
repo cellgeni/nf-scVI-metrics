@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 
-import sys
 import anndata as ad
-import scanpy as sc
+import numpy as np
 import scvi
 import json
 import pickle
@@ -13,6 +12,7 @@ parser = argparse.ArgumentParser(description="Run scVI model.")
 parser.add_argument("--adata", type=str, help="Path to the input AnnData file.")
 parser.add_argument("--input_file", type=str, help="Path to the arguments file.")
 parser.add_argument("--params_file", type=str, help="Path to the model input JSON file.")
+parser.add_argument("--check_val_every_n_epoch", type=int, help="Number of epochs to check validation loss.")
 args = parser.parse_args()
 
 adata_path = args.adata
@@ -31,14 +31,9 @@ scvi.model.SCVI.setup_anndata(
 scvi_model = scvi.model.SCVI(adata,
                              **model_input)
 
-scvi_model.train(check_val_every_n_epoch = 5, **params['train_input'])
+scvi_model.train(check_val_every_n_epoch = args.check_val_every_n_epoch, **params['train_input'])
 
-import numpy as np
 np.save(f"scvi_{args.params_file}", scvi_model.get_latent_representation())
-
-# out_adata = ad.AnnData(obs = adata.obs, var = adata.var)
-# out_adata.obsm['scVI'] = scvi_model.get_latent_representation()
-# out_adata.write_h5ad(f"adata_{args.params_file}")
 
 with open(f"history_{args.params_file}", "wb") as f:
     pickle.dump(scvi_model.history, f)
