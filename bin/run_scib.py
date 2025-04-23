@@ -23,7 +23,7 @@ if 'layer' in params['param_input']:
         adata.X = adata.layers[params['param_input']['layer']]
 
 embedding = np.load(temp)
-temp_obsm = 'param_' + temp.split('_')[2].split('.')[0]
+temp_obsm = f"param_{temp.split('_')[2]}_{temp.split('_')[5].split('.')[0]}"
 adata.obsm[temp_obsm] = embedding
 
 scib_input = params['scib_input']

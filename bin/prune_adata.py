@@ -10,6 +10,7 @@ import h5py
 parser = argparse.ArgumentParser(description='Prune AnnData object.')
 parser.add_argument('--raw_adata', type=str, help='Path to the input h5 file.')
 parser.add_argument('--input_file', type=str, help='Path to the parameters file.')
+parser.add_argument("--adata_mask", type=str, help="Path to the mask file.")
 parser.add_argument('--n_pca_unintegrated', type=int, help='Number of PCA components to use for unintegrated data.')
 args = parser.parse_args()
 
@@ -32,6 +33,9 @@ else:
         adata.X = ad._io.specs.read_elem(file['X'])
         adata.layers['nxf_norm'] = ad._io.specs.read_elem(file['X'])
 
+
+adata = adata[:, adata.var[args.adata_mask]].copy()
+
 if 'pre_integrated_embedding_obsm_key' not in params['scib_input']:
     sc.pp.normalize_total(adata, layer='nxf_norm')
     sc.pp.log1p(adata, layer='nxf_norm')
@@ -41,6 +45,7 @@ del adata.layers['nxf_norm']
 del adata.uns
 del adata.varm
 
-adata.write_h5ad("pruned_adata")
+adata.write_h5ad(f"pruned_adata_{args.adata_mask}.h5ad")
 
-np.save(f"PCA_params_unintegrated", adata.obsm['X_pca'])
+
+np.save(f"PCA_params_unintegrated_{args.adata_mask}", adata.obsm['X_pca'])

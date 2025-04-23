@@ -33,6 +33,7 @@ process parse_inputs {
     val input_file
   output:
     path 'adata_path', emit: adata_path
+    path 'adata_mask_*', emit: adata_mask
     path 'params_*', emit: model_input
     path 'input_params.csv', emit: input_params
   script:
@@ -47,14 +48,16 @@ process prune_adata {
   input:
     path raw_adata
     val input_file
+    val adata_mask
   output:
-    path 'pruned_adata', emit: adata
-    path 'PCA_params_unintegrated.npy', emit: pca
+    tuple val(adata_mask), path("pruned_adata_${adata_mask}.h5ad"), emit: adata
+    tuple val(adata_mask), path("PCA_params_unintegrated_${adata_mask}.npy"), emit: pca
   script:
   """
     prune_adata.py \
       --raw_adata '$raw_adata' \
       --input_file '$input_file' \
+      --adata_mask '$adata_mask' \
       --n_pca_unintegrated $params.n_pca_unintegrated
   """
 }
@@ -62,18 +65,18 @@ process prune_adata {
 process run_scVI {
   memory {adata.size() < 2.GB ? 8.GB * task.attempt : adata.size() * 4 * task.attempt}
   input:
-    path adata
+    tuple val(adata_mask), path(adata), path(model_input)
     val input_file
-    path model_input
   output:
-    path "scvi_${model_input}.npy", emit: embedding
-    path "history_${model_input}", emit: history
+    tuple val(adata_mask), path("scvi_${model_input}_${adata_mask}.npy"), emit: embedding
+    path "history_${model_input}_${adata_mask}", emit: history
   script:
   """
     run_scVI.py \
       --adata '$adata' \
       --input_file '$input_file' \
       --params_file '$model_input' \
+      --adata_mask '$adata_mask' \
       --check_val_every_n_epoch $params.check_val_every_n_epoch
   """
 }
@@ -94,9 +97,8 @@ process plot_history {
 process run_scib {
   memory {adata.size() < 2.GB ? 16.GB * task.attempt : adata.size() * 8 * task.attempt}
   input:
-    path adata
+    tuple val(adata_mask), path(scVI_embedding), path(adata)
     val input_file
-    path scVI_embedding
   output:
     path 'param_*'
   script:
@@ -127,10 +129,9 @@ process plot_scib {
 process run_umap {
   memory {adata.size() < 2.GB ? 16.GB * task.attempt : adata.size() * 8 * task.attempt}
   input:
-    path adata
-    path scVI_embedding
+    tuple val(adata_mask), path(scVI_embedding), path(adata)
   output:
-    path 'umap_*' 
+    tuple val(adata_mask), path('umap_*')
   script:
   """
     run_umap.py \
@@ -142,7 +143,7 @@ process run_umap {
 process plot_umap {
   publishDir 'results', mode: 'copy'
   input:
-    path adata
+    path adata 
     val input_file
     path umaps
   output:
@@ -179,18 +180,28 @@ workflow {
   }
   else {
     parse_inputs(params.input_file)
-    prune_adata(parse_inputs.out.adata_path.text, params.input_file)
-    run_scVI(prune_adata.out.adata, params.input_file, parse_inputs.out.model_input.flatten())
+    prune_adata(parse_inputs.out.adata_path.text, params.input_file, parse_inputs.out.adata_mask.text.flatten())
+
+    prune_adata.out.adata
+      .combine(parse_inputs.out.model_input.flatten())
+      .set {runs}
+  
+    run_scVI(runs, params.input_file)
     plot_history(run_scVI.out.history.collect())
-    run_scib(prune_adata.out.adata, params.input_file, run_scVI.out.embedding.concat(prune_adata.out.pca))
+
+    run_scVI.out.embedding.concat(prune_adata.out.pca)
+      .combine(prune_adata.out.adata, by: 0)
+      .set {embeddings}
+
+    run_scib(embeddings, params.input_file)
     plot_scib(run_scib.out.collect())
-    embeddings = run_scVI.out.embedding
+    embeddings_only = run_scVI.out.embedding
     if (params.umap) {
-      run_umap(prune_adata.out.adata, run_scVI.out.embedding.concat(prune_adata.out.pca))
-      plot_umap(prune_adata.out.adata, params.input_file, run_umap.out.collect())
-      embeddings = embeddings.concat(run_umap.out)
+      run_umap(embeddings)
+      plot_umap(parse_inputs.out.adata_path.text, params.input_file, run_umap.out.map { it[1] }.collect())
+      embeddings_only = embeddings_only.concat(run_umap.out)
     }
-    combine_embedding(parse_inputs.out.adata_path.text, embeddings.collect())
+    combine_embedding(parse_inputs.out.adata_path.text, embeddings_only.map { it[1] }.collect())
   }
 }
 
