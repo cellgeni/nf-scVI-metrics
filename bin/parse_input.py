@@ -30,6 +30,9 @@ for i, j in enumerate(turning_grid):
 
 pd.DataFrame.from_dict(out_dict).transpose().to_csv('input_params.csv')
 
-for i, j in enumerate(params['anndata_mask']):
+temp = params['anndata_mask']
+if temp == []:
+    temp = ['']
+for i, j in enumerate(temp):
     with open(f"adata_mask_{i}", "w") as f:
         f.write(j)

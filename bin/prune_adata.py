@@ -33,8 +33,8 @@ else:
         adata.X = ad._io.specs.read_elem(file['X'])
         adata.layers['nxf_norm'] = ad._io.specs.read_elem(file['X'])
 
-
-adata = adata[:, adata.var[args.adata_mask]].copy()
+if args.adata_mask != '':
+    adata = adata[:, adata.var[args.adata_mask]].copy()
 
 if 'pre_integrated_embedding_obsm_key' not in params['scib_input']:
     sc.pp.normalize_total(adata, layer='nxf_norm')

@@ -51,7 +51,7 @@ process prune_adata {
     val adata_mask
   output:
     tuple val(adata_mask), path("pruned_adata_${adata_mask}.h5ad"), emit: adata
-    tuple val(adata_mask), path("PCA_params_unintegrated_${adata_mask}.npy"), emit: pca
+    tuple path("pruned_adata_${adata_mask}.h5ad"), path("PCA_params_unintegrated_${adata_mask}.npy"), emit: pca
   script:
   """
     prune_adata.py \
@@ -68,7 +68,7 @@ process run_scVI {
     tuple val(adata_mask), path(adata), path(model_input)
     val input_file
   output:
-    tuple val(adata_mask), path("scvi_${model_input}_${adata_mask}.npy"), emit: embedding
+    tuple path(adata), path("scvi_${model_input}_${adata_mask}.npy"), emit: embedding
     path "history_${model_input}_${adata_mask}", emit: history
   script:
   """
@@ -97,7 +97,7 @@ process plot_history {
 process run_scib {
   memory {adata.size() < 2.GB ? 16.GB * task.attempt : adata.size() * 8 * task.attempt}
   input:
-    tuple val(adata_mask), path(scVI_embedding), path(adata)
+    tuple path(adata), path(scVI_embedding)
     val input_file
   output:
     path 'param_*'
@@ -129,9 +129,9 @@ process plot_scib {
 process run_umap {
   memory {adata.size() < 2.GB ? 16.GB * task.attempt : adata.size() * 8 * task.attempt}
   input:
-    tuple val(adata_mask), path(scVI_embedding), path(adata)
+    tuple path(adata), path(scVI_embedding)
   output:
-    tuple val(adata_mask), path('umap_*')
+    tuple path(adata), path('umap_*')
   script:
   """
     run_umap.py \
@@ -190,7 +190,6 @@ workflow {
     plot_history(run_scVI.out.history.collect())
 
     run_scVI.out.embedding.concat(prune_adata.out.pca)
-      .combine(prune_adata.out.adata, by: 0)
       .set {embeddings}
 
     run_scib(embeddings, params.input_file)
