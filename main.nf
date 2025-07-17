@@ -44,7 +44,7 @@ process parse_inputs {
 }
 
 process prune_adata {
-  memory {raw_adata.size() < 2.GB ? 6.GB * task.attempt : raw_adata.size() * 3 * task.attempt}
+  memory {raw_adata.size() < 2.GB ? 8.GB * task.attempt : raw_adata.size() * 4 * task.attempt}
   input:
     path raw_adata
     val input_file
@@ -63,6 +63,7 @@ process prune_adata {
 }
 
 process run_scVI {
+  publishDir 'results/models', mode: 'copy', pattern: '*.pt'
   memory {adata.size() < 2.GB ? 8.GB * task.attempt : adata.size() * 4 * task.attempt}
   input:
     tuple val(adata_mask), path(adata), path(model_input)
@@ -70,6 +71,7 @@ process run_scVI {
   output:
     tuple path(adata), path("scvi_${model_input}_${adata_mask}.npy"), emit: embedding
     path "history_${model_input}_${adata_mask}", emit: history
+    path "model_${model_input}_${adata_mask}.pt", emit: model, optional: true
   script:
   """
     run_scVI.py \
@@ -77,6 +79,7 @@ process run_scVI {
       --input_file '$input_file' \
       --params_file '$model_input' \
       --adata_mask '$adata_mask' \
+      --save_model $params.save_model \
       --check_val_every_n_epoch $params.check_val_every_n_epoch
   """
 }
@@ -127,7 +130,7 @@ process plot_scib {
 }
 
 process run_umap {
-  memory {adata.size() < 2.GB ? 16.GB * task.attempt : adata.size() * 8 * task.attempt}
+  memory {adata.size() < 2.GB ? 16.GB * task.attempt : adata.size() * 12 * task.attempt}
   input:
     tuple path(adata), path(scVI_embedding)
   output:

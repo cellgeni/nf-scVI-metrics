@@ -37,6 +37,8 @@ scib_input = {
 # parameters for SCVI.train
 train_input = {
     'train_size': 0.95, 
-    'max_epochs': 200, 
-    'batch_size': 512
+    'max_epochs': 100, 
+    'batch_size': 512,
+    'early_stopping' = True,
+    'early_stopping_patience' = 10,
 }

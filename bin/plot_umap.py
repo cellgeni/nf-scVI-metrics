@@ -15,7 +15,7 @@ parser.add_argument('--input_file', type=str, help='Path to the parameters file.
 parser.add_argument('--umaps', type=str, help='Space-separated list of UMAP numpy files.')
 args = parser.parse_args()
 
-adata = ad.read_h5ad(args.adata, backed=True)
+adata = ad.read_h5ad(args.adata, backed='r')
 params = run_path(args.input_file)
 
 pp = PdfPages("umap.pdf")
