@@ -27,6 +27,13 @@ def errorMessage() {
     exit 1
 }
 
+def CalculateMemory(adata_size, factor, attempt) {
+    if (adata_size < 2.GB) {
+        return 2.GB * factor * attempt
+    }
+    return adata_size * factor * attempt
+}
+
 process parse_inputs {
   publishDir 'results', mode: 'copy', pattern: 'input_params.csv'
   input:
@@ -44,7 +51,8 @@ process parse_inputs {
 }
 
 process prune_adata {
-  memory {raw_adata.size() < 2.GB ? 8.GB * task.attempt : raw_adata.size() * 4 * task.attempt}
+  memory { CalculateMemory(raw_adata.size(), 4, task.attempt) }
+  queue { CalculateMemory(raw_adata.size(), 4, task.attempt) < 680.GB ? "normal" : "hugemem" }
   input:
     path raw_adata
     val input_file
@@ -64,7 +72,8 @@ process prune_adata {
 
 process run_scVI {
   publishDir 'results/models', mode: 'copy', pattern: '*.pt'
-  memory {adata.size() < 2.GB ? 8.GB * task.attempt : adata.size() * 4 * task.attempt}
+  memory { CalculateMemory(adata.size(), 4, task.attempt) }
+  queue { CalculateMemory(adata.size(), 4, task.attempt) < 680.GB ? "gpu-normal" : "gpu-huge" }
   input:
     tuple val(adata_mask), path(adata), path(model_input)
     val input_file
@@ -98,7 +107,8 @@ process plot_history {
 }
 
 process run_scib {
-  memory {adata.size() < 2.GB ? 16.GB * task.attempt : adata.size() * 8 * task.attempt}
+  memory { CalculateMemory(adata.size(), 8, task.attempt) }
+  queue { CalculateMemory(adata.size(), 8, task.attempt) < 680.GB ? "normal" : "hugemem" }
   input:
     tuple path(adata), path(scVI_embedding)
     val input_file
@@ -130,7 +140,8 @@ process plot_scib {
 }
 
 process run_umap {
-  memory {adata.size() < 2.GB ? 16.GB * task.attempt : adata.size() * 12 * task.attempt}
+  memory { CalculateMemory(adata.size(), 12, task.attempt) }
+  queue { CalculateMemory(adata.size(), 12, task.attempt) < 680.GB ? "normal" : "hugemem" }
   input:
     tuple path(adata), path(scVI_embedding)
   output:
@@ -162,7 +173,8 @@ process plot_umap {
 
 process combine_embedding {
   publishDir 'results', mode: 'copy'
-  memory {raw_adata.size() < 2.GB ? 4.GB * task.attempt : raw_adata.size() * 2 * task.attempt}
+  memory { CalculateMemory(adata.size(), 2, task.attempt) }
+  queue { CalculateMemory(adata.size(), 2, task.attempt) < 680.GB ? "normal" : "hugemem" }
   input:
     path raw_adata
     path embeddings

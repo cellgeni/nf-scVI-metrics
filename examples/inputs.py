@@ -39,6 +39,6 @@ train_input = {
     'train_size': 0.95, 
     'max_epochs': 100, 
     'batch_size': 512,
-    'early_stopping' = True,
-    'early_stopping_patience' = 10,
+    'early_stopping': True,
+    'early_stopping_patience': 10,
 }
