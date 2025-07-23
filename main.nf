@@ -173,8 +173,8 @@ process plot_umap {
 
 process combine_embedding {
   publishDir 'results', mode: 'copy'
-  memory { CalculateMemory(adata.size(), 2, task.attempt) }
-  queue { CalculateMemory(adata.size(), 2, task.attempt) < 680.GB ? "normal" : "hugemem" }
+  memory { CalculateMemory(raw_adata.size(), 2, task.attempt) }
+  queue { CalculateMemory(raw_adata.size(), 2, task.attempt) < 680.GB ? "normal" : "hugemem" }
   input:
     path raw_adata
     path embeddings
