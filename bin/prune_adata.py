@@ -24,10 +24,10 @@ with h5py.File(args.raw_adata) as file:
     
 adata = ad.AnnData(obs=obs, var=var)
 
-if 'layer' in params['param_input']:
+if 'layer' in params['scvi_input']:
     with h5py.File(args.raw_adata) as file:
-        adata.layers[params['param_input']['layer']] = ad._io.specs.read_elem(file[f"layers/{params['param_input']['layer']}"])
-        adata.layers['nxf_norm'] = ad._io.specs.read_elem(file[f"layers/{params['param_input']['layer']}"])
+        adata.layers[params['scvi_input']['layer']] = ad._io.specs.read_elem(file[f"layers/{params['scvi_input']['layer']}"])
+        adata.layers['nxf_norm'] = ad._io.specs.read_elem(file[f"layers/{params['scvi_input']['layer']}"])
 else:
     with h5py.File(args.raw_adata) as file:
         adata.X = ad._io.specs.read_elem(file['X'])
@@ -47,5 +47,5 @@ del adata.varm
 
 adata.write_h5ad(f"pruned_adata_{args.adata_mask}.h5ad")
 
-
-np.save(f"PCA_params_unintegrated_{args.adata_mask}", adata.obsm['X_pca'])
+pca_adata = ad.AnnData(obs=adata.obs.copy(), var=adata.var.copy(), obsm={"X_pca": adata.obsm["X_pca"]})
+pca_adata.write_h5ad(f"PCA_params_unintegrated_{args.adata_mask}.h5ad")

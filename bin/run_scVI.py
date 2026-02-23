@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import anndata as ad
-import numpy as np
 import scvi
 import json
 import pickle
@@ -29,15 +28,23 @@ adata = ad.read_h5ad(adata_path)
 
 scvi.model.SCVI.setup_anndata(
     adata,
-    **params['param_input']
+    **params['scvi_input']
 )
 
 scvi_model = scvi.model.SCVI(adata,
                              **model_input)
 
-scvi_model.train(check_val_every_n_epoch = args.check_val_every_n_epoch, **params['train_input'])
+scvi_model.train(check_val_every_n_epoch = args.check_val_every_n_epoch, **params['scvi_train_input'])
 
-np.save(f"scvi_{args.params_file}_{args.adata_mask}", scvi_model.get_latent_representation())
+adata.obsm["X_scVI"] = scvi_model.get_latent_representation()
+
+# Drop expression matrix and layers to keep output small
+if hasattr(adata, "X"):
+    del adata.X
+if hasattr(adata, "layers"):
+    adata.layers.clear()
+
+adata.write_h5ad(f"scvi_{args.params_file}_{args.adata_mask}.h5ad")
 
 with open(f"history_{args.params_file}_{args.adata_mask}", "wb") as f:
     pickle.dump(scvi_model.history, f)
