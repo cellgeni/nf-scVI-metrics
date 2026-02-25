@@ -16,14 +16,14 @@ for emb_path in sorted(args.embeddings.split()):
     path = Path(emb_path)
     if path.suffix == ".h5ad":
         emb = ad.read_h5ad(path)
-        if "X_scVI" in emb.obsm:
-            adata.obsm["X_scVI"] = emb.obsm["X_scVI"]
-        if "X_scANVI" in emb.obsm:
-            adata.obsm["X_scANVI"] = emb.obsm["X_scANVI"]
-        if "X_pca" in emb.obsm:
-            adata.obsm["X_pca"] = emb.obsm["X_pca"]
-        if "X_umap" in emb.obsm:
-            adata.obsm["X_umap"] = emb.obsm["X_umap"]
+        if "scvi_" in path.stem and "X_scVI" in emb.obsm:
+            adata.obsm[path.stem] = emb.obsm["X_scVI"]
+        if "scanvi_" in path.stem and "X_scANVI" in emb.obsm:
+            adata.obsm[path.stem] = emb.obsm["X_scANVI"]
+        if "pca_" in path.stem and "X_pca" in emb.obsm:
+            adata.obsm[path.stem] = emb.obsm["X_pca"]
+        if "umap_" in path.stem and "X_umap" in emb.obsm:
+            adata.obsm[path.stem] = emb.obsm["X_umap"]
     else:
         adata.obsm[path.stem] = np.load(path)
 

@@ -46,8 +46,8 @@ if hasattr(adata, "layers"):
 
 adata.write_h5ad(f"scvi_{args.params_file}_{args.adata_mask}.h5ad")
 
-with open(f"history_{args.params_file}_{args.adata_mask}", "wb") as f:
+with open(f"history_{args.params_file}_{args.adata_mask}.pkl", "wb") as f:
     pickle.dump(scvi_model.history, f)
 
 if args.save_model.lower() == "true":
-    scvi_model.save(f"model_{args.params_file}_{args.adata_mask}.pt", overwrite=True)
+    scvi_model.save(f"scvi_{args.params_file}_{args.adata_mask}.pt", overwrite=True)

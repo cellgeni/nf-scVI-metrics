@@ -82,9 +82,9 @@ process run_scVI {
     val input_file
   output:
     tuple path(adata), path("scvi_${model_input}_${adata_mask}.h5ad"), emit: embedding
-    path "history_${model_input}_${adata_mask}", emit: history
-    path "model_${model_input}_${adata_mask}.pt", emit: model, optional: true
-    tuple val(adata_mask), path(adata), path(model_input), path("model_${model_input}_${adata_mask}.pt"), emit: model_with_inputs, optional: true
+    path "history_${model_input}_${adata_mask}.pkl", emit: history
+    path "scvi_${model_input}_${adata_mask}.pt", emit: model, optional: true
+    tuple val(adata_mask), path(adata), path(model_input), path("scvi_${model_input}_${adata_mask}.pt"), emit: model_with_inputs, optional: true
   script:
   """
     run_scVI.py \
@@ -112,8 +112,7 @@ process run_scANVI {
     run_scANVI.py \
       --adata '$adata' \
       --input_file '$input_file' \
-      --scvi_model '$scvi_model' \
-      --output_prefix 'scanvi_${scvi_model.baseName}'
+      --scvi_model '$scvi_model'
   """
 }
 
@@ -159,7 +158,7 @@ process run_scib {
     tuple path(adata), path(scVI_embedding)
     val input_file
   output:
-    path 'X_*'
+    path 'scib_*.csv'
   script:
   """
     run_scib.py \

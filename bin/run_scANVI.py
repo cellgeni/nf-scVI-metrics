@@ -24,7 +24,6 @@ def main():
     parser.add_argument("--adata", type=str, required=True, help="Path to the pruned AnnData file used for scVI.")
     parser.add_argument("--input_file", type=str, required=True, help="Path to the pipeline input params file.")
     parser.add_argument("--scvi_model", type=str, required=True, help="Path to the trained scVI model directory.")
-    parser.add_argument("--output_prefix", type=str, default=None, help="Prefix for output files.")
     parser.add_argument("--labels_key", type=str, default=None, help="Override labels key for scANVI.")
     parser.add_argument("--unlabeled_category", type=str, default=None, help="Override unlabeled category.")
     parser.add_argument("--n_samples_per_label", type=int, default=None, help="Override n_samples_per_label for scANVI training.")
@@ -67,10 +66,10 @@ def main():
 
     scanvi_model.train(**train_kwargs)
 
-    model_base = Path(args.scvi_model).name
-    output_prefix = args.output_prefix or f"scanvi_{model_base}"
+    model_base = Path(args.scvi_model).stem
+    output_prefix = model_base.replace('scvi_', 'scanvi_')
 
-    scanvi_model.save(f"scanvi_model_{model_base}")
+    scanvi_model.save(f"{output_prefix}.pt")
 
     adata.obsm["X_scANVI"] = scanvi_model.get_latent_representation(adata)
     adata.obs["C_scANVI"] = scanvi_model.predict(adata)

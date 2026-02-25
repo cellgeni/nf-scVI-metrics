@@ -5,6 +5,7 @@ import scanpy as sc
 from scib_metrics.benchmark import Benchmarker, BioConservation, BatchCorrection
 from runpy import run_path
 import argparse
+from pathlib import Path
 
 parser = argparse.ArgumentParser(description="Run scIB metrics.")
 parser.add_argument("--adata", type=str, help="Path to the input AnnData file.")
@@ -33,8 +34,9 @@ def infer_obsm_key(emb_adata) -> str:
 
 emb_adata = ad.read_h5ad(embedding_path)
 temp_obsm = infer_obsm_key(emb_adata)
-temp_name = embedding_path.replace('scanvi_model_', '').replace(".h5ad", "")
-adata.obsm[temp_name] = emb_adata.obsm[temp_obsm]
+embedding_stem = Path(embedding_path).stem
+embedding_stem = embedding_stem.replace("scvi_", "").replace("scanvi_", "")
+adata.obsm[embedding_stem] = emb_adata.obsm[temp_obsm]
 
 if not adata.obs_names.equals(emb_adata.obs_names):
     raise ValueError("Embedding h5ad obs_names do not match adata obs_names.")
@@ -59,11 +61,11 @@ bm = Benchmarker(
     adata,
     bio_conservation_metrics=BioConservation(),
     batch_correction_metrics=BatchCorrection(),
-    embedding_obsm_keys=[temp_name],
+    embedding_obsm_keys=[embedding_stem],
     n_jobs=args.n_cpu,
     **scib_input
 )
 
 bm.benchmark()
 
-bm._results.to_csv('X_' + temp_name + "_scib_results.csv")
+bm._results.to_csv(f"scib_{embedding_stem}.csv")

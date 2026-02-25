@@ -23,5 +23,5 @@ adata = ad.AnnData(emb.obsm[use_rep])
 sc.pp.neighbors(adata, use_rep='X')
 sc.tl.umap(adata, random_state=args.seed)
 emb.obsm["X_umap"] = adata.obsm["X_umap"]
-out_name = f"umap_{Path(args.embedding_h5ad).stem}.h5ad"
+out_name = f"umap_{Path(args.embedding_h5ad).stem.replace('scvi_', '').replace('scanvi_', '')}.h5ad"
 emb.write_h5ad(out_name)
