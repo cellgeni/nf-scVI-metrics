@@ -30,15 +30,8 @@ def errorMessage() {
     exit 1
 }
 
-def CalculateMemory(adata_size, factor, attempt) {
-    if (adata_size < 2.GB) {
-        return 2.GB * factor * attempt
-    }
-    return adata_size * factor * attempt
-}
-
 process parse_inputs {
-  publishDir 'results', mode: 'copy', pattern: 'input_params.csv'
+  publishDir "${params.output_dir}", mode: 'copy', pattern: 'input_params.csv'
   input:
     val input_file
   output:
@@ -53,9 +46,19 @@ process parse_inputs {
   """
 }
 
+process copy_inputs {
+  label 'process_local'
+  publishDir "${params.output_dir}", mode: 'copy'
+  input:
+    path input_file
+  output:
+    path "${input_file.getName()}", emit: original_input
+  script:
+  """
+  """
+}
+
 process prune_adata {
-  memory { CalculateMemory(raw_adata.size(), 4, task.attempt) }
-  queue { CalculateMemory(raw_adata.size(), 4, task.attempt) < 680.GB ? "normal" : "hugemem" }
   input:
     path raw_adata
     val input_file
@@ -74,9 +77,8 @@ process prune_adata {
 }
 
 process run_scVI {
-  publishDir 'results/models', mode: 'copy', pattern: '*.pt'
-  memory { CalculateMemory(adata.size(), 4, task.attempt) }
-  queue { CalculateMemory(adata.size(), 4, task.attempt) < 680.GB ? "gpu-normal" : "gpu-huge" }
+  label 'process_gpu'
+  publishDir "${params.output_dir}/models", mode: 'copy', pattern: '*.pt'
   input:
     tuple val(adata_mask), path(adata), path(model_input)
     val input_file
@@ -98,9 +100,8 @@ process run_scVI {
 }
 
 process run_scANVI {
+  label 'process_gpu'
   publishDir 'results/scanvi', mode: 'copy', pattern: 'scanvi_*.h5ad'
-  memory { CalculateMemory(adata.size(), 4, task.attempt) }
-  queue { CalculateMemory(adata.size(), 4, task.attempt) < 680.GB ? "gpu-normal" : "gpu-huge" }
   input:
     tuple val(adata_mask), path(adata), path(model_input), path(scvi_model)
     val input_file
@@ -139,7 +140,7 @@ process scanvi_majority_voting {
 }
 
 process plot_history {
-  publishDir 'results', mode: 'copy'
+  publishDir "${params.output_dir}", mode: 'copy'
   input:
     path history
   output:
@@ -152,8 +153,6 @@ process plot_history {
 }
 
 process run_scib {
-  memory { CalculateMemory(adata.size(), 8, task.attempt) }
-  queue { CalculateMemory(adata.size(), 8, task.attempt) < 680.GB ? "normal" : "hugemem" }
   input:
     tuple path(adata), path(scVI_embedding)
     val input_file
@@ -172,12 +171,14 @@ process run_scib {
 }
 
 process plot_scib {
-  publishDir 'results', mode: 'copy'
+  publishDir "${params.output_dir}", mode: 'copy'
   input:
     path results
   output:
     path 'scib_results.svg'
     path 'scib_results_scaled.svg'
+    path 'scib_results.csv'
+    path 'scib_results_scaled.csv'
   script:
   """
     plot_scib.py \
@@ -186,8 +187,6 @@ process plot_scib {
 }
 
 process run_umap {
-  memory { CalculateMemory(adata.size(), 12, task.attempt) }
-  queue { CalculateMemory(adata.size(), 12, task.attempt) < 680.GB ? "normal" : "hugemem" }
   input:
     tuple path(adata), path(scVI_embedding)
   output:
@@ -201,7 +200,7 @@ process run_umap {
 }
 
 process plot_umap {
-  publishDir 'results', mode: 'copy'
+  publishDir "${params.output_dir}", mode: 'copy'
   input:
     val input_file
     path umaps
@@ -216,9 +215,7 @@ process plot_umap {
 }
 
 process combine_embedding {
-  publishDir 'results', mode: 'copy'
-  memory { CalculateMemory(raw_adata.size(), 2, task.attempt) }
-  queue { CalculateMemory(raw_adata.size(), 2, task.attempt) < 680.GB ? "normal" : "hugemem" }
+  publishDir "${params.output_dir}", mode: 'copy'
   input:
     path raw_adata
     path embeddings
@@ -251,6 +248,7 @@ workflow {
       exit 1
     }
     parse_inputs(params.input_file)
+    copy_inputs(params.input_file)
     prune_adata(parse_inputs.out.adata_path.text, params.input_file, parse_inputs.out.adata_mask.text.flatten())
 
     prune_adata.out.adata
