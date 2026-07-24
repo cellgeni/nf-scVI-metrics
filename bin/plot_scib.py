@@ -21,5 +21,7 @@ bm._results = pd.concat(result_list, axis=1)
 bm._embedding_obsm_keys = args.result_files.split()
 bm._benchmarked = True
 
+bm.get_results()[:-1].sort_values(by = 'Total', ascending = False).to_csv('scib_results_scaled.csv')
+bm.get_results(min_max_scale=False)[:-1].sort_values(by = 'Total', ascending = False).to_csv('scib_results.csv')
 bm.plot_results_table(show=False).figure.savefig('scib_results_scaled.svg')
 bm.plot_results_table(min_max_scale=False, show=False).figure.savefig('scib_results.svg')
