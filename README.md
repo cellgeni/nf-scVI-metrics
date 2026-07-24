@@ -18,6 +18,7 @@ This pipeline performs a grid search to optimize hyperparameters for `scVI`. The
 - **`--input_file`** – Path to a `.py` file specifying:  
   - The path to `anndata`.  
   - Configuration details for `scVI` and `scib-metrics`. 
+- **`--gpu_group`** – project cost code of the form sXXXX to access the AI acceleration clusters
 
 ### Optional parameters:
 * `--help` — Display this help message

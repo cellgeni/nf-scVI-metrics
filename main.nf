@@ -27,13 +27,6 @@ def errorMessage() {
     exit 1
 }
 
-def CalculateMemory(adata_size, factor, attempt) {
-    if (adata_size < 2.GB) {
-        return 2.GB * factor * attempt
-    }
-    return adata_size * factor * attempt
-}
-
 process parse_inputs {
   publishDir "${params.output_dir}", mode: 'copy', pattern: 'input_params.csv'
   input:
@@ -51,7 +44,7 @@ process parse_inputs {
 }
 
 process copy_inputs {
-  label 'local'
+  label 'process_local'
   publishDir "${params.output_dir}", mode: 'copy'
   input:
     path input_file
@@ -63,8 +56,6 @@ process copy_inputs {
 }
 
 process prune_adata {
-  memory { CalculateMemory(raw_adata.size(), 6, task.attempt) }
-  queue { CalculateMemory(raw_adata.size(), 6, task.attempt) < 680.GB ? "normal" : "hugemem" }
   input:
     path raw_adata
     val input_file
@@ -83,8 +74,8 @@ process prune_adata {
 }
 
 process run_scVI {
+  label 'process_gpu'
   publishDir "${params.output_dir}/models", mode: 'copy', pattern: '*.pt'
-  memory { CalculateMemory(adata.size(), 4, task.attempt) }
   input:
     tuple val(adata_mask), path(adata), path(model_input)
     val input_file
@@ -118,8 +109,6 @@ process plot_history {
 }
 
 process run_scib {
-  memory { CalculateMemory(adata.size(), 8, task.attempt) }
-  queue { CalculateMemory(adata.size(), 8, task.attempt) < 680.GB ? "normal" : "hugemem" }
   input:
     tuple path(adata), path(scVI_embedding)
     val input_file
@@ -153,8 +142,6 @@ process plot_scib {
 }
 
 process run_umap {
-  memory { CalculateMemory(adata.size(), 12, task.attempt) }
-  queue { CalculateMemory(adata.size(), 12, task.attempt) < 680.GB ? "normal" : "hugemem" }
   input:
     tuple path(adata), path(scVI_embedding)
   output:
@@ -186,8 +173,6 @@ process plot_umap {
 
 process combine_embedding {
   publishDir "${params.output_dir}", mode: 'copy'
-  memory { CalculateMemory(raw_adata.size(), 2, task.attempt) }
-  queue { CalculateMemory(raw_adata.size(), 2, task.attempt) < 680.GB ? "normal" : "hugemem" }
   input:
     path raw_adata
     path embeddings
