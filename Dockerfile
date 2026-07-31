@@ -20,6 +20,7 @@ RUN python -m venv "${VENV_PATH}" && \
     . "${VENV_PATH}/bin/activate" && \
     pip install -U pip setuptools wheel && \
     pip install jupyterlab papermill \
+    pyyaml \
     bbknn \
     scib-metrics==0.5.3 \
     scvi-tools==1.3.0
