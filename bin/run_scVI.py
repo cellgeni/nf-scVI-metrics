@@ -7,7 +7,7 @@ import json
 import pickle
 import argparse
 import torch
-from runpy import run_path
+import yaml
 
 parser = argparse.ArgumentParser(description="Run scVI model.")
 parser.add_argument("--adata", type=str, help="Path to the input AnnData file.")
@@ -20,7 +20,9 @@ args = parser.parse_args()
 
 torch.set_float32_matmul_precision("high")
 adata_path = args.adata
-params = run_path(args.input_file)
+with open(args.input_file, "r", encoding="utf-8") as handle:
+    params = yaml.safe_load(handle)
+scvi_config = params["scvi"]
 
 with open(args.params_file) as f:
     model_input = json.load(f)
@@ -29,13 +31,13 @@ adata = ad.read_h5ad(adata_path)
 
 scvi.model.SCVI.setup_anndata(
     adata,
-    **params['param_input']
+    **scvi_config["setup_anndata"]
 )
 
 scvi_model = scvi.model.SCVI(adata,
                              **model_input)
 
-scvi_model.train(check_val_every_n_epoch = args.check_val_every_n_epoch, **params['train_input'])
+scvi_model.train(check_val_every_n_epoch=args.check_val_every_n_epoch, **scvi_config["train"])
 
 np.save(f"scvi_{args.params_file}_{args.adata_mask}", scvi_model.get_latent_representation())
 

@@ -1,0 +1,38 @@
+preprocess:
+  anndata_input: "/lustre/scratch127/cellgen/cellgeni/yc6/GBM/GBM_scVI_metrics.h5ad"
+  # Optional layer to use for model input.
+  # layer: "counts"
+
+  # List of gene set masks to use for scVI.
+  # Use '' for all genes.
+  anndata_mask:
+    - ""
+    - "highly_variable"
+    - "random"
+
+scvi:
+  # Grid-search parameters for scvi.model.SCVI.
+  # Each value must be a list.
+  model_input:
+    n_latent: [10, 20]
+    n_layers: [1, 2]
+
+  # Parameters for scvi.model.SCVI.setup_anndata.
+  setup_anndata:
+    batch_key: "donor_id"
+    continuous_covariate_keys: ["log1p_n_genes_by_counts", "pct_counts_mt"]
+    categorical_covariate_keys: ["sample", "dataset", "data_source", "phase"]
+
+  # Parameters for scvi.model.SCVI.train.
+  train:
+    train_size: 0.95
+    max_epochs: 100
+    batch_size: 512
+    early_stopping: true
+    early_stopping_patience: 10
+
+scib:
+  # Parameters for scib_metrics.benchmark.Benchmarker.
+  metrics:
+    batch_key: "donor_id"
+    label_key: "annotation_coarse"
