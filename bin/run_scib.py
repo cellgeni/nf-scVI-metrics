@@ -4,8 +4,8 @@ import anndata as ad
 import numpy as np
 import scanpy as sc
 from scib_metrics.benchmark import Benchmarker, BioConservation, BatchCorrection
-from runpy import run_path
 import argparse
+import yaml
 
 parser = argparse.ArgumentParser(description="Run scIB metrics.")
 parser.add_argument("--adata", type=str, help="Path to the input AnnData file.")
@@ -16,17 +16,19 @@ parser.add_argument("--n_cpu", type=int, help="Number of CPUs to use in scIB.")
 args = parser.parse_args()
 
 adata = ad.read_h5ad(args.adata)
-params = run_path(args.input_file)
+with open(args.input_file, "r", encoding="utf-8") as handle:
+    params = yaml.safe_load(handle)
+preprocess_config = params["preprocess"]
+scib_input = dict(params["scib"]["metrics"])
 temp = args.scVI_embedding
 
-if 'layer' in params['param_input']:
-        adata.X = adata.layers[params['param_input']['layer']]
+if "layer" in preprocess_config:
+    adata.X = adata.layers[preprocess_config["layer"]]
 
 embedding = np.load(temp)
 temp_obsm = f"param_{temp.split('_')[2]}_{'_'.join(temp.split('_')[3:]).split('.')[0]}"
 adata.obsm[temp_obsm] = embedding
 
-scib_input = params['scib_input']
 if 'pre_integrated_embedding_obsm_key' not in scib_input:
     scib_input['pre_integrated_embedding_obsm_key'] = 'X_pca'
 
